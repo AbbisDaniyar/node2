@@ -1,0 +1,94 @@
+<html>
+<head>
+    <title>Компьютерный салон</title>
+</head>
+<body>
+    <p><a href="/tovars/addTovar">Новый товар</a></p>
+    
+    <h1>Список товаров</h1>
+    
+    <!-- Форма для фильтрации -->
+    <form action="/tovars" method="GET">
+        <label for="dev-select">Выберите тип устройства:</label>
+        <select name="devId" id="dev-select">
+            <option value="0">Все типы устройств</option>
+            {{#each Devices}}
+            <option value="{{this.DevId}}">{{this.DevName}}</option>
+            {{/each}}
+        </select>
+        
+        {{#if curDevId}}
+        <label for="firm-select">Фирма-производитель:</label>
+        <select name="firmId" id="firm-select">
+            <option value="0">Все фирмы</option>
+            {{#each Firms}}
+            <option value="{{this.FirmId}}">{{this.FirmName}}</option>
+            {{/each}}
+        </select>
+        {{/if}}
+        
+        <button type="submit">Фильтровать</button>
+    </form>
+
+    <!-- Скрытые поля для хранения выбранных значений -->
+    <p hidden>
+        Выбранный тип устройства: <label id="curDev">{{curDevId}}</label>
+        Выбранная фирма: <label id="curFirm">{{curFirmId}}</label>
+    </p>
+
+    <table border="1">
+        <tr>
+            <th>TovarId</th>
+            <th>Наименование</th>
+            <th>Тип устройства</th>
+            <th>Фирма</th>
+            <th>Характеристики</th>
+            <th>Цена</th>
+            <th>Кол-во</th>
+            <th>Edit</th>
+            <th>В корзину</th>
+            <th>Delete</th>
+        </tr>
+        {{#each Tovars}}
+        <tr>
+            <td>{{this.TovarId}}</td>
+            <td>{{this.TovarName}}</td>
+            <td>{{this.DevId}}</td>
+            <td>{{this.FirmId}}</td>
+            <td>{{this.Properties}}</td>
+            <td>{{this.Price}}</td>
+            <td>{{this.Kol}}</td>
+            <td><a href="/tovars/editTovar/{{this.TovarId}}">Edit</a></td>
+            <td><a href="/sales/addToCart/{{this.TovarId}}">В корзину</a></td>
+            <td>
+                <form action="/tovars/deleteTovar/{{this.TovarId}}" method="POST">
+                    <button type="submit" onclick="return confirm('Вы уверены, что хотите удалить этот товар?');">
+                        Delete
+                    </button>
+                </form>
+            </td>
+        </tr>
+        {{/each}}
+    </table>
+    
+    <br>
+    <a href="/">На главную</a>
+
+    <!-- Скрипт для установки выбранных значений в выпадающих списках -->
+    <script>
+        // Выбранный ТИП УСТРОЙСТВА
+        const devSelect = document.getElementById("dev-select");
+        const lblDev = document.getElementById("curDev");
+        if (devSelect && lblDev) {
+            devSelect.value = lblDev.innerText || "0";
+        }
+
+        // Выбранный ПРОИЗВОДИТЕЛЬ
+        const firmSelect = document.getElementById("firm-select");
+        const lblFirm = document.getElementById("curFirm");
+        if (firmSelect && lblFirm) {
+            firmSelect.value = lblFirm.innerText || "0";
+        }
+    </script>
+</body>
+</html>

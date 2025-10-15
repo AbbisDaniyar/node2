@@ -1,0 +1,19 @@
+<html>
+<head>
+    <title>Редактирование данных товара</title>
+</head>
+<body>
+    <h2>Редактирование данных товара</h2>
+    <form action="/tovars/postEditTovar" method="POST">
+        <input type="hidden" name="TovarId" value="{{tovar.TovarId}}">
+        <label>Наименование</label><br>
+        <input name="TovarName" value="{{tovar.TovarName}}" required><br>
+        <label>Цена</label><br>
+        <input name="Price" type="number" value="{{tovar.Price}}" required><br>
+        <label>Количество</label><br>
+        <input name="Kol" type="number" value="{{tovar.Kol}}" required><br><br>
+        <input type="submit" value="Сохранить">
+    </form>
+    <a href="/tovars">Список товаров</a>
+</body>
+</html>

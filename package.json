@@ -1,0 +1,23 @@
+{
+  "name": "node2",
+  "version": "1.0.0",
+  "description": "Веб-приложение для компьютерного салона",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node app.js",
+    "dev": "nodemon app.js"
+  },
+  "keywords": [
+    "express",
+    "mysql",
+    "computer-store"
+  ],
+  "author": "Данияр",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.1.0",
+    "hbs": "^4.2.0",
+    "mysql2": "^3.15.0"
+  }
+}

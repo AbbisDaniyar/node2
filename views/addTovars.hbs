@@ -1,0 +1,20 @@
+<html>
+<head>
+    <title>Ввод данных нового товара</title>
+</head>
+<body>
+    <h1>Данные нового товара</h1>
+    <form action="/tovars/postAddTovar" method="POST">
+        <label>TovarId</label><br>
+        <input name="TovarId" type="number" required><br><br>
+        <label>Наименование</label><br>
+        <input name="TovarName" required><br><br>
+        <label>Цена</label><br>
+        <input name="Price" type="number" required><br><br>
+        <label>Количество</label><br>
+        <input name="Kol" type="number" required><br><br>
+        <input type="submit" value="Добавить">
+    </form>
+    <a href="/tovars">Все товары</a>
+</body>
+</html>
