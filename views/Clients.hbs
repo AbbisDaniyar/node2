@@ -1,0 +1,36 @@
+<html>
+<head>
+    <title>Список клиентов салона</title>
+</head>
+<body>
+    <p><a href="/clients/addClient">Новый клиент</a></p>
+    <h1>Список клиентов</h1>
+    
+    <table border="1">
+        <tr>
+            <th>ClientId</th>
+            <th>Имя</th>
+            <th>Год рожд.</th>
+            <th>Адрес</th>
+            <th>Телефон</th>
+            <th>Действия</th>
+        </tr>
+        {{#each Clients}}
+        <tr>
+            <td>{{this.ClientId}}</td>
+            <td>{{this.ClientName}}</td>
+            <td>{{this.BirthYear}}</td>
+            <td>{{this.Address}}</td>
+            <td>{{this.Phone}}</td>
+            <td>
+                <a href="/clients/editClient/{{this.ClientId}}">Edit</a> |
+                <a href="/sales/getHistory/{{this.ClientId}}">История</a>
+            </td>
+        </tr>
+        {{/each}}
+    </table>
+    
+    <br>
+    <a href="/tovars">К списку товаров</a>
+</body>
+</html>

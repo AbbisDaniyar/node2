@@ -1,0 +1,48 @@
+<html>
+<head>
+    <title>Корзина</title>
+</head>
+<body>
+    <h1>Оформление заказа</h1>
+    <h2>Корзина</h2>
+    
+    {{#if cartTovars.length}}
+    <table border="1">
+        <tr>
+            <th>Наименование</th>
+            <th>Цена</th>
+            <th>Характеристики</th>
+        </tr>
+        {{#each cartTovars}}
+        <tr>
+            <td>{{this.TovarName}}</td>
+            <td>{{this.Price}}</td>
+            <td>{{this.Properties}}</td>
+        </tr>
+        {{/each}}
+    </table>
+    
+    <br>
+    Всего на {{totalPrice}} рублей
+    <br><br>
+    
+    <form action="/sales/cartToHistory" method="POST">
+        <label>Выберите Клиента:</label><br>
+        <select name="clientId" id="clientId" required>
+            <option value="0">-- Выберите клиента --</option>
+            {{#each Clients}}
+            <option value="{{this.ClientId}}">{{this.ClientName}} - {{this.Phone}}</option>
+            {{/each}}
+        </select>
+        <br><br>
+        <button type="submit">Оплатить заказ</button>
+    </form>
+    
+    {{else}}
+    <p>Ваша корзина пуста!</p>
+    {{/if}}
+    
+    <br>
+    <a href="/tovars">Назад к списку товаров</a>
+</body>
+</html>

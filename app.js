@@ -1,28 +1,17 @@
-// ==================== ИМПОРТ МОДУЛЕЙ ====================
+
+
 const express = require("express");
 const mysql = require("mysql2");
-const path = require("path");
-const urlencodedParser = express.urlencoded({ extended: false }); 
 
-// ==================== СОЗДАНИЕ ПРИЛОЖЕНИЯ ====================
 const app = express();
-const PORT = 3000;
+const urlencodedParser = express.urlencoded({ extended: false });
 
-// ==================== MIDDLEWARE ====================
-// Парсинг URL-encoded данных (из форм)
-app.use(express.urlencoded({ extended: false }));
-
-// Парсинг JSON данных
-app.use(express.json());
-
-// Статические файлы (CSS, JS, изображения)
-app.use(express.static(path.join(__dirname, "public")));
-
-// ==================== НАСТРОЙКА ШАБЛОНИЗАТОРА ====================
 app.set("view engine", "hbs");
-app.set("views", path.join(__dirname, "views"));
 
-// ==================== ПОДКЛЮЧЕНИЕ К БАЗЕ ДАННЫХ ====================
+// Глобальная переменная для корзины
+let cart = [];
+
+// Подключение к базе данных
 const pool = mysql.createPool({
     connectionLimit: 10, // Максимальное количество соединений
     host: "localhost",
@@ -36,114 +25,254 @@ const pool = mysql.createPool({
 // Проверка подключения к базе данных
 pool.getConnection((err, connection) => {
     if (err) {
-        console.error("Ошибка подключения к базе данных:", err.message);
-        return;
+        console.log("❌ Ошибка подключения к базе данных:", err.message);
+    } else {
+        console.log("✅ Успешное подключение к базе данных MySQL");
+        connection.release();
     }
-    console.log("✅ Успешное подключение к базе данных MySQL");
-    connection.release();
 });
 
-// ==================== БАЗОВЫЕ МАРШРУТЫ ================================
-
 // Главная страница
-app.get("/", (req, res) => {
-    res.render("index", {
-        title: "Главная страница",
-        pageName: "Главная"
-    });
+app.get("/", function (req, res) {
+    res.render("Index.hbs");
 });
 
 // Страница "О нас"
-app.get("/about", (req, res) => {
-    res.render("about", {
-        title: "О нашем салоне",
-        pageName: "О нас"
-    });
+app.get("/about", function (req, res) {
+    res.render("About.hbs");
 });
 
 // Получение списка товаров с фильтрацией
 app.get("/tovars", function (req, res) {
-    // Основа SQL-запроса для таблицы Tovars
     let query = "SELECT * FROM Tovars";
-    let filters = []; // Условие фильтрации
-    let params = []; // Параметры SQL-запроса
+    let filters = [];
+    let params = [];
 
-    // Основа SQL-запроса для таблицы Firms
     let queryFirm = "SELECT * FROM Firms";
-    let filtersFirm = []; // Условие фильтрации
-    let paramsFirm = []; // Параметры SQL-запроса
+    let filtersFirm = [];
+    let paramsFirm = [];
 
     let firmId = req.query.firmId;
     let devId = req.query.devId;
 
-    // Если выбран "Все типы устройств", устанавливаем devId в undefined
     if (devId == 0) devId = undefined;
 
-    // Если выбран конкретный тип устройства DevId
     if (devId) {
-        filters.push("DevId = ?"); // Условие фильтрации таблицы Tovars
-        params.push(devId); // Параметры SQL-запроса
+        filters.push("DevId = ?");
+        params.push(devId);
 
-        filtersFirm.push("DevId = ?"); // Условие фильтрации таблицы Firms
-        paramsFirm.push(devId); // Параметры SQL-запроса
+        filtersFirm.push("DevId = ?");
+        paramsFirm.push(devId);
 
-        // Если выбран конкретный производитель FirmId
         if (firmId != 0 && firmId != undefined) {
-            filters.push("FirmId = ?"); // Условие фильтрации таблицы Tovars
-            params.push(firmId); // Параметры SQL-запроса
+            filters.push("FirmId = ?");
+            params.push(firmId);
         }
     }
 
-    // Формирование SQL-запроса для таблицы Tovars
     if (filters.length) {
         query += " WHERE " + filters.join(" AND ");
     }
 
-    // Формирование SQL-запроса для таблицы Firms
     if (filtersFirm.length) {
         queryFirm += " WHERE " + filtersFirm.join(" AND ");
     }
 
-    // Выполнение SQL-запроса для таблицы Devices
+    // Сначала получаем Devices
     pool.query("SELECT * FROM Devices", function (err, devices) {
         if (err) return console.log(err);
 
-        // Выполнение SQL-запроса для таблицы Firms
+        // Затем получаем Firms
         pool.query(queryFirm, paramsFirm, function (err, firms) {
             if (err) return console.log(err);
 
-            // Выполнение SQL-запроса для таблицы Tovars
+            // Затем получаем Tovars
             pool.query(query, params, function (err, tovars) {
                 if (err) return console.log(err);
 
-                // Передача данных в представление
                 res.render("Tovars.hbs", {
                     Devices: devices,
                     Firms: firms,
                     Tovars: tovars,
                     curDevId: devId,
-                    curFirmId: firmId
+                    curFirmId: firmId,
+                    cartLen: cart.length
                 });
             });
         });
     });
 });
+
+// Добавление товара в корзину
+app.get("/sales/addToCart/:TovarId", function (req, res) {
+    const TovarId = req.params.TovarId;
+    
+    pool.query("SELECT * FROM Tovars WHERE TovarId=?", [TovarId], function (err, tovar) {
+        if (err) return console.log(err);
+        
+        if (tovar[0]) {
+            cart.push(tovar[0]);
+            console.log(`✅ Товар добавлен в корзину: ${tovar[0].TovarName}`);
+        }
+        
+        res.redirect("/tovars");
+    });
+});
+
+// Просмотр корзины
+app.get("/sales/getCart", function (req, res) {
+    const totalPrice = cart.reduce((total, tovar) => total + parseFloat(tovar.Price), 0);
+    
+    pool.query("SELECT * FROM Clients", function (err, clients) {
+        if (err) return console.log(err);
+        
+        res.render("Cart.hbs", {
+            cartTovars: cart,
+            totalPrice: totalPrice,
+            Clients: clients
+        });
+    });
+});
+
+// Оформление заказа
+app.post("/sales/cartToHistory", urlencodedParser, function (req, res) {
+    if (!req.body) return res.sendStatus(400);
+    
+    const clientId = req.body.clientId;
+    const dateDay = new Date().getDate();
+    const dateMonth = new Date().getMonth() + 1;
+    
+    if (clientId == 0) {
+        return res.redirect("/sales/getCart");
+    }
+    
+    if (cart.length === 0) {
+        res.redirect("/tovars");
+        return;
+    }
+    
+    let completed = 0;
+    cart.forEach(tovar => {
+        pool.query("INSERT INTO History (TovarId, ClientId, dateDay, dateMonth) VALUES (?, ?, ?, ?)",
+            [tovar.TovarId, clientId, dateDay, dateMonth], function (err) {
+                if (err) console.log(err);
+                
+                completed++;
+                if (completed === cart.length) {
+                    console.log(`✅ Заказ оформлен для клиента ${clientId}`);
+                    cart = [];
+                    res.redirect("/tovars");
+                }
+            });
+    });
+});
+
+// Просмотр истории покупок клиента
+app.get("/sales/getHistory/:ClientId", function (req, res) {
+    const clientId = req.params.ClientId;
+    
+    pool.query(`SELECT h.*, t.TovarName, c.ClientName 
+                FROM History h 
+                JOIN Tovars t ON h.TovarId = t.TovarId 
+                JOIN Clients c ON h.ClientId = c.ClientId 
+                WHERE h.ClientId=?`, 
+                [clientId], function (err, history) {
+        if (err) return console.log(err);
+        
+        res.render("History.hbs", {
+            History: history
+        });
+    });
+});
+
+// Получение списка клиентов
+app.get("/clients", function (req, res) {
+    pool.query("SELECT * FROM Clients", function (err, clients) {
+        if (err) return console.log(err);
+        
+        res.render("Clients.hbs", {
+            Clients: clients
+        });
+    });
+});
+
+// Добавление нового клиента
+app.get("/clients/addClient", function (req, res) {
+    res.render("addClient.hbs");
+});
+
+app.post("/clients/postAddClient", urlencodedParser, function (req, res) {
+    if (!req.body) return res.sendStatus(400);
+    
+    const ClientId = req.body.ClientId;
+    const ClientName = req.body.ClientName;
+    const BirthYear = req.body.BirthYear;
+    const Address = req.body.Address;
+    const Phone = req.body.Phone;
+    
+    pool.query("INSERT INTO Clients (ClientId, ClientName, BirthYear, Address, Phone) VALUES (?, ?, ?, ?, ?)",
+        [ClientId, ClientName, BirthYear, Address, Phone], function (err) {
+            if (err) return console.log(err);
+            res.redirect("/clients");
+        });
+});
+
+// Редактирование клиента
+app.get("/clients/editClient/:ClientId", function (req, res) {
+    const clientId = req.params.ClientId;
+    
+    pool.query("SELECT * FROM Clients WHERE ClientId=?", [clientId], function (err, clients) {
+        if (err) return console.log(err);
+        
+        res.render("editClient.hbs", {
+            client: clients[0]
+        });
+    });
+});
+
+app.post("/clients/postEditClient", urlencodedParser, function (req, res) {
+    if (!req.body) return res.sendStatus(400);
+    
+    const ClientId = req.body.ClientId;
+    const ClientName = req.body.ClientName;
+    const BirthYear = req.body.BirthYear;
+    const Address = req.body.Address;
+    const Phone = req.body.Phone;
+    
+    pool.query("UPDATE Clients SET ClientName=?, BirthYear=?, Address=?, Phone=? WHERE ClientId=?",
+        [ClientName, BirthYear, Address, Phone, ClientId], function (err) {
+            if (err) return console.log(err);
+            res.redirect("/clients");
+        });
+});
+
+// Добавление товара
+app.get("/tovars/addTovar", function (req, res) {
+    res.render("addTovar.hbs");
+});
+
 app.post("/tovars/postAddTovar", urlencodedParser, function (req, res) {
     if (!req.body) return res.sendStatus(400);
     
-    const { TovarId, TovarName, Price, Kol } = req.body;
+    const TovarId = req.body.TovarId;
+    const TovarName = req.body.TovarName;
+    const Price = req.body.Price;
+    const Kol = req.body.Kol;
     
     pool.query("INSERT INTO Tovars (TovarId, TovarName, Price, Kol) VALUES (?, ?, ?, ?)",
-        [TovarId, TovarName, Price, Kol], function (err, data) {
+        [TovarId, TovarName, Price, Kol], function (err) {
             if (err) return console.log(err);
             res.redirect("/tovars");
         });
 });
 
+// Редактирование товара
 app.get("/tovars/editTovar/:TovarId", function (req, res) {
     const TovarId = req.params.TovarId;
+    
     pool.query("SELECT * FROM Tovars WHERE TovarId=?", [TovarId], function (err, tovars) {
         if (err) return console.log(err);
+        
         res.render("editTovar.hbs", {
             tovar: tovars[0]
         });
@@ -153,40 +282,29 @@ app.get("/tovars/editTovar/:TovarId", function (req, res) {
 app.post("/tovars/postEditTovar", urlencodedParser, function (req, res) {
     if (!req.body) return res.sendStatus(400);
     
-    const { TovarId, TovarName, Price, Kol } = req.body;
+    const Kol = req.body.Kol;
+    const Price = req.body.Price;
+    const TovarId = req.body.TovarId;
     
-    pool.query("UPDATE Tovars SET TovarName=?, Price=?, Kol=? WHERE TovarId=?",
-        [TovarName, Price, Kol, TovarId], function (err, data) {
+    pool.query("UPDATE Tovars SET Price=?, Kol=? WHERE TovarId=?",
+        [Price, Kol, TovarId], function (err) {
             if (err) return console.log(err);
             res.redirect("/tovars");
         });
 });
 
+// Удаление товара
 app.post("/tovars/deleteTovar/:TovarId", function (req, res) {
     const TovarId = req.params.TovarId;
-    pool.query("DELETE FROM Tovars WHERE TovarId=?", [TovarId], function (err, data) {
+    
+    pool.query("DELETE FROM Tovars WHERE TovarId=?", [TovarId], function (err) {
         if (err) return console.log(err);
         res.redirect("/tovars");
     });
 });
 
-// Обработка 404 ошибок
-app.use((req, res) => {
-    res.status(404).render("404", {
-        title: "Страница не найдена",
-        pageName: "404"
-    });
+// Запуск сервера
+app.listen(3000, function () {
+    console.log("🚀 Сервер запущен на http://localhost:3000");
+    console.log("📁 Рабочая директория: " + process.cwd());
 });
-
-// ==================== ЗАПУСК СЕРВЕРА ====================
-app.listen(PORT, (error) => {
-    if (error) {
-        console.error("Ошибка запуска сервера:", error);
-        return;
-    }
-    console.log(`🚀 Сервер запущен на http://localhost:${PORT}`);
-    console.log(`📁 Рабочая директория: ${__dirname}`);
-});
-
-// Экспорт для тестирования
-module.exports = app;

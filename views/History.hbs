@@ -1,0 +1,33 @@
+<html>
+<head>
+    <title>История покупок</title>
+</head>
+<body>
+    <h2>История покупок</h2>
+    
+    {{#if History.length}}
+    <table border="1">
+        <tr>
+            <th>Товар</th>
+            <th>Клиент</th>
+            <th>Дата сделки</th>
+            <th>ID покупки</th>
+        </tr>
+        {{#each History}}
+        <tr>
+            <td>{{this.TovarName}} (ID: {{this.TovarId}})</td>
+            <td>{{this.ClientName}} (ID: {{this.ClientId}})</td>
+            <td>{{this.dateDay}}.{{this.dateMonth}}</td>
+            <td>{{this.HistoryId}}</td>
+        </tr>
+        {{/each}}
+    </table>
+    {{else}}
+    <p>История покупок пуста.</p>
+    {{/if}}
+    
+    <br>
+    <a href="/tovars">К списку Товаров</a><br>
+    <a href="/clients">К списку Клиентов</a>
+</body>
+</html>
